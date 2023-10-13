@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const port =  8080;
+const port = process.env.PORT || 8080;
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -15,7 +15,17 @@ const upload = multer({ storage });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(express.static('public')); // Assuming your static files are in the 'public' directory
+app.use('/public', express.static(path.join(__dirname, 'public')))
+
+app.get('/', (req, res) => {
+  fs.readFile(path.join(__dirname, 'index.html'), { encoding: 'utf8' }, (err, data) => {
+    if (err) {
+      console.log(err); 
+    } else {
+      res.send(data);
+    }
+  })
+});
 
 app.post('/send', upload.array('files', 100), (req, res) => {
   const { name, email, number, message } = req.body;
@@ -46,19 +56,17 @@ app.post('/send', upload.array('files', 100), (req, res) => {
     })),
   };
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.log(error);
+  transporter.sendMail(mailOptions, (err, info) => {
+    if (err) {
+      console.log(err);
       res.status(500).send('Error sending email.');
     } else {
       console.log('Email sent: ' + info.response);
       res.status(200).send('Email sent successfully.');
     }
   });
-});
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.redirect('/');
 });
 
 app.listen(port, () => {
